@@ -1,50 +1,34 @@
-import { Container, Text } from "@pixi/react";
 import "@pixi/events";
-import { FederatedPointerEvent } from "@pixi/events";
-import { DraggableObject } from "./Graph";
-import { Circle } from "./Circle";
+import { Text } from "@pixi/react";
 import { TextStyle } from "pixi.js";
 import { Vertex } from "../App";
+import { Circle } from "./Circle";
+import { DraggableContainer } from "./DraggableContainer";
 
 const GraphNodeSprite = ({
   vertex,
   cursor,
   index,
   enableDrag,
-  dragStartCallback,
-  dragEndCallback,
+  updateVertexPositionCallback,
 }: {
   vertex: Vertex;
   cursor: string;
   index: number;
   enableDrag: boolean;
-  dragStartCallback: ({
-    sprite,
-    index,
-  }: {
-    sprite: DraggableObject;
-    index: number;
-  }) => void;
-  dragEndCallback: () => void;
+  updateVertexPositionCallback: (x: number, y: number, index: number) => void;
 }) => {
-  const onDragEnd = () => {
-    dragEndCallback();
-  };
-
-  const onDragStart = (event: FederatedPointerEvent) => {
-    const sprite = event.currentTarget as DraggableObject;
-    sprite.alpha = 0.5;
-    dragStartCallback({ sprite, index });
+  const updateVertexPosition = (x: number, y: number) => {
+    updateVertexPositionCallback(x, y, index);
   };
 
   return (
-    <Container
+    <DraggableContainer
       x={vertex.x}
       y={vertex.y}
-      eventMode={"static"}
       cursor={cursor}
-      pointerdown={enableDrag ? onDragStart : () => {}}
-      pointerup={onDragEnd}
+      enableDrag={enableDrag}
+      onDragEndCallback={updateVertexPosition}
     >
       <Circle r={30} />
       <Text
@@ -59,7 +43,7 @@ const GraphNodeSprite = ({
           })
         }
       />
-    </Container>
+    </DraggableContainer>
   );
 };
 
