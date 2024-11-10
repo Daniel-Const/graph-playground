@@ -2,9 +2,11 @@
 
 Create graphs in a canvas (drag and drop)
 
-Export images of the graph
+## Goals
 
-Run algorithms on it
+- Looks + feels good
+- Export images of the graph
+- Run algorithms on it e.g. shortest path
 
 ## Start
 

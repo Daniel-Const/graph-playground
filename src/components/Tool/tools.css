@@ -1,5 +1,6 @@
 .tools-container {
   background-color: black;
+  padding: 1em;
   min-height: 20em;
   min-width: 5em;
   position: fixed;

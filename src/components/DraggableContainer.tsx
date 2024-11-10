@@ -54,6 +54,10 @@ export const DraggableContainer = ({
         undefined,
         dragTarget.current.position
       );
+      onDragEndCallback(
+        dragTarget.current.position.x,
+        dragTarget.current.position.y
+      );
     }
   };
 
