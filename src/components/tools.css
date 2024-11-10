@@ -1,0 +1,11 @@
+.tools-container {
+  background-color: black;
+  min-height: 20em;
+  min-width: 5em;
+  position: fixed;
+  top: 10%;
+  margin-left: 2em;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}

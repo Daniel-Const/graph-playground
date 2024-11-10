@@ -1,0 +1,9 @@
+#root {
+  max-width: 1280px;
+}
+
+canvas {
+    min-height: 100vh;
+    min-width: 100vh;
+    background-color: grey;
+}
