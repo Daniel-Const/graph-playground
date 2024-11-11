@@ -1,6 +1,6 @@
 import "@pixi/events";
 import { Stage } from "@pixi/react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import "./App.css";
 import Graph from "./components/Graph.tsx";
 import ToolMenu from "./components/Tool/ToolMenu.tsx";
@@ -18,6 +18,19 @@ export interface Edge {
   to: number;
 }
 
+const useWindowSize = () => {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useLayoutEffect(() => {
+    const updateSize = () => {
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+  return size;
+};
+
 function App() {
   const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.Mouse);
   const [vertices, setVertices] = useState<Vertex[]>([
@@ -25,15 +38,12 @@ function App() {
     { x: 600, y: 100, data: "B" },
   ]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const { width, height } = useWindowSize();
 
   return (
     <>
       <ToolMenu tool={currentTool} selectTool={setCurrentTool} />
-      <Stage
-        width={window.innerWidth}
-        height={window.innerWidth}
-        options={{ background: 0x1099bb }}
-      >
+      <Stage width={width} height={height} options={{ background: 0x47453f }}>
         {currentTool == ToolType.Vertex ? <VertexCursor /> : ""}
 
         <Graph
