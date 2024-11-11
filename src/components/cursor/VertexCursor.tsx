@@ -2,7 +2,7 @@ import "@pixi/events";
 import { FederatedPointerEvent } from "@pixi/events";
 import { Container, useApp } from "@pixi/react";
 import { useState } from "react";
-import VertexSprite from "./VertexSprite";
+import VertexSprite from "../VertexSprite";
 
 export const VertexCursor = () => {
   const app = useApp();

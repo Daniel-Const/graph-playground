@@ -1,21 +1,22 @@
 import "@pixi/events";
-import { Container, useApp } from "@pixi/react";
+import { useApp } from "@pixi/react";
 import { FederatedPointerEvent } from "pixi.js";
 import { Edge, Vertex } from "../App";
-import { DraggableContainer } from "./DraggableContainer";
-import { EdgeSprite } from "./EdgeSprite";
 import VertexSprite from "./VertexSprite";
-import { ToolType } from "./Tool/ToolType";
+import { ToolType } from "./tool/ToolType";
 import { useState } from "react";
-import { SelectableContainer } from "./SelectableContainer";
-import { EdgeCursor } from "./EdgeCursor";
+import { EdgeCursor } from "./cursor/EdgeCursor";
+import { PointerEventBundle, VertexContainer } from "./VertexContainer";
+import { useDragBundle } from "../events/DragEventBundle";
+import { useSelectBundle } from "../events/SelectEventBundle";
+import { EdgeSprite } from "./EdgeSprite";
 
 interface NewEdge {
   from: number | null;
   to: number | null;
 }
 
-export const Graph = ({
+export const NewGraph = ({
   vertices,
   edges,
   tool,
@@ -25,29 +26,14 @@ export const Graph = ({
   vertices: Vertex[];
   edges: Edge[];
   tool: ToolType;
-  setVertices: (v: Vertex[]) => void;
-  setEdges: (e: Edge[]) => void;
+  setVertices: (vertices: Vertex[]) => void;
+  setEdges: (vertices: Edge[]) => void;
 }) => {
-  const app = useApp();
   const [newEdge, setNewEdge] = useState<NewEdge>({ from: null, to: null });
 
-  const onAddNode = (event: FederatedPointerEvent) => {
-    const position = event.global;
-    setVertices([...vertices, { x: position.x, y: position.y, data: "A" }]);
-  };
-
-  switch (tool) {
-    case ToolType.Vertex:
-      app.stage.on("pointerdown", onAddNode);
-      break;
-    case ToolType.Mouse:
-      app.stage.removeAllListeners("pointerdown");
-      break;
-    case ToolType.Edge:
-      app.stage.removeAllListeners("pointerdown");
-  }
-
-  // else... app.stage.on("pointerdown", onDeleteNode);
+  const app = useApp();
+  app.stage.eventMode = "static";
+  app.stage.hitArea = app.screen;
 
   const updateVertexPosition = (x: number, y: number, index: number) => {
     const newvertices = [...vertices];
@@ -56,15 +42,41 @@ export const Graph = ({
     setVertices(newvertices);
   };
 
-  const selectVertexForNewEdge = (i: number) => {
-    console.log("SElect vertex for new edge");
+  // Move to pointerEventBundle
+  const onAddNode = (event: FederatedPointerEvent) => {
+    const position = event.global;
+    setVertices([
+      ...vertices,
+      { x: position.x, y: position.y, data: vertices.length.toString() },
+    ]);
+  };
+
+  let pointerEventBundles: PointerEventBundle[] = [];
+  const dragEventBundle = useDragBundle(updateVertexPosition);
+  const selectEventBundle = useSelectBundle((index: number) => {
+    console.log("Selected ", index);
+  });
+  const selectEdgeEventBundle = useSelectBundle((index: number) => {
     if (newEdge.from === null) {
-      setNewEdge({ from: i, to: null });
+      setNewEdge({ from: index, to: null });
     } else if (newEdge.to === null) {
-      setEdges([...edges, { from: newEdge.from, to: i }]);
+      setEdges([...edges, { from: newEdge.from, to: index }]);
       setNewEdge({ from: null, to: null });
     }
-  };
+  });
+
+  switch (tool) {
+    case ToolType.Vertex:
+      app.stage.on("pointerdown", onAddNode);
+      break;
+    case ToolType.Mouse:
+      pointerEventBundles = [dragEventBundle, selectEventBundle];
+      app.stage.removeAllListeners("pointerdown");
+      break;
+    case ToolType.Edge:
+      pointerEventBundles = [selectEventBundle, selectEdgeEventBundle];
+      app.stage.removeAllListeners("pointerdown");
+  }
 
   const getEdgeKey = (v1: Vertex, v2: Vertex) => {
     return `${v1.x}${v1.y}${v2.x}${v2.y}`;
@@ -77,7 +89,10 @@ export const Graph = ({
           key={newEdge.from}
           anchorPosition={
             newEdge.from !== null
-              ? { x: vertices[newEdge.from].x, y: vertices[newEdge.from].y }
+              ? {
+                  x: vertices[newEdge.from].x,
+                  y: vertices[newEdge.from].y,
+                }
               : null
           }
         />
@@ -91,48 +106,21 @@ export const Graph = ({
           key={getEdgeKey(vertices[edge.from], vertices[edge.to])}
         />
       ))}
-
       {vertices.map((vertex: Vertex, index: number) => {
-        if (tool === ToolType.Mouse) {
-          return (
-            <DraggableContainer
-              x={vertex.x}
-              y={vertex.y}
-              cursor={tool == ToolType.Mouse ? "pointer" : "default"}
-              enableDrag={tool == ToolType.Mouse}
-              onDragEndCallback={(x: number, y: number) =>
-                updateVertexPosition(x, y, index)
-              }
-              key={index}
-            >
-              <VertexSprite label={vertex.data} alpha={1} />
-            </DraggableContainer>
-          );
-        } else if (tool === ToolType.Edge) {
-          return (
-            <SelectableContainer
-              x={vertex.x}
-              y={vertex.y}
-              cursor={"default"}
-              key={`select-container${index}`}
-              onSelectCallback={() => selectVertexForNewEdge(index)}
-            >
-              <VertexSprite
-                label={vertex.data}
-                alpha={newEdge.from === index ? 0.5 : 1}
-              />
-            </SelectableContainer>
-          );
-        } else {
-          return (
-            <Container x={vertex.x} y={vertex.y} key={index}>
-              <VertexSprite label={vertex.data} alpha={1} />
-            </Container>
-          );
-        }
+        return (
+          <VertexContainer
+            x={vertex.x}
+            y={vertex.y}
+            key={index}
+            index={index}
+            pointerEventBundles={pointerEventBundles}
+          >
+            <VertexSprite label={vertex.data} alpha={1} />
+          </VertexContainer>
+        );
       })}
     </>
   );
 };
 
-export default Graph;
+export default NewGraph;

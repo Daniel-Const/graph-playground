@@ -1,7 +1,7 @@
 import { useApp } from "@pixi/react";
 import { FederatedPointerEvent } from "pixi.js";
 import { useState } from "react";
-import { EdgeSprite } from "./EdgeSprite";
+import { EdgeSprite } from "../EdgeSprite";
 
 export const EdgeCursor = ({
   anchorPosition,

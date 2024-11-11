@@ -3,9 +3,9 @@ import { Stage } from "@pixi/react";
 import { useLayoutEffect, useState } from "react";
 import "./App.css";
 import Graph from "./components/Graph.tsx";
-import ToolMenu from "./components/Tool/ToolMenu.tsx";
-import { ToolType } from "./components/Tool/ToolType.ts";
-import { VertexCursor } from "./components/VertexCursor.tsx";
+import ToolMenu from "./components/tool/ToolMenu.tsx";
+import { ToolType } from "./components/tool/ToolType.ts";
+import { VertexCursor } from "./components/cursor/VertexCursor.tsx";
 
 export interface Vertex {
   x: number;
@@ -32,10 +32,11 @@ const useWindowSize = () => {
 };
 
 function App() {
+  // change to 'global' state for verts / edges ?
   const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.Mouse);
   const [vertices, setVertices] = useState<Vertex[]>([
-    { x: 300, y: 100, data: "A" },
-    { x: 600, y: 100, data: "B" },
+    { x: 300, y: 100, data: "1" },
+    { x: 600, y: 100, data: "2" },
   ]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const { width, height } = useWindowSize();
@@ -43,16 +44,15 @@ function App() {
   return (
     <>
       <ToolMenu tool={currentTool} selectTool={setCurrentTool} />
-      <Stage width={width} height={height} options={{ background: 0x47453f }}>
+      <Stage width={width} height={height} options={{ background: 0x3e444f }}>
         {currentTool == ToolType.Vertex ? <VertexCursor /> : ""}
 
         <Graph
           vertices={vertices}
           edges={edges}
-          setVertices={(v: Vertex[]) => setVertices(v)}
-          setEdges={(e: Edge[]) => setEdges(e)}
           tool={currentTool}
-          key={currentTool}
+          setVertices={setVertices}
+          setEdges={setEdges}
         />
       </Stage>
     </>
