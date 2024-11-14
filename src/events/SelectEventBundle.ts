@@ -1,18 +1,18 @@
 import { DisplayObject, FederatedPointerEvent } from "pixi.js";
-import { PointerEventBundle } from "../components/VertexContainer";
+import { MetaData, PointerEventBundle } from "../components/EventContainer";
 
 interface SelectableObject extends DisplayObject {
   alpha: number;
-  index: number;
+  meta: MetaData;
 }
 
 export const useSelectBundle = (
-  selectCallback: (index: number) => void
+  selectCallback: (meta: MetaData) => void
 ): PointerEventBundle => {
   const onSelect = (event?: FederatedPointerEvent) => {
     const target = event?.currentTarget as SelectableObject;
     if (target) {
-      selectCallback(target.index);
+      selectCallback(target.meta);
     }
   };
 

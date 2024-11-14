@@ -1,5 +1,5 @@
-import { Graphics as IGraphics } from "pixi.js";
 import { Graphics } from "@pixi/react";
+import { Graphics as IGraphics } from "pixi.js";
 import { useCallback } from "react";
 
 export const Circle = ({

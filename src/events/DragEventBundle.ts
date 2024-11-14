@@ -1,15 +1,15 @@
 import { useApp } from "@pixi/react";
 import { DisplayObject, FederatedPointerEvent } from "pixi.js";
 import { useRef } from "react";
-import { PointerEventBundle } from "../components/VertexContainer";
+import { MetaData, PointerEventBundle } from "../components/EventContainer";
 
 interface DraggableObject extends DisplayObject {
   alpha: number;
-  index: number;
+  meta: MetaData;
 }
 
 export const useDragBundle = (
-  dragEndCallback: (x: number, y: number, index: number) => void
+  dragEndCallback: (x: number, y: number, id: string) => void
 ): PointerEventBundle => {
   const dragTarget = useRef<DraggableObject | null>(null);
   const app = useApp();
@@ -38,7 +38,7 @@ export const useDragBundle = (
       dragEndCallback(
         dragTarget.current.position.x,
         dragTarget.current.position.y,
-        dragTarget.current.index
+        dragTarget.current.meta.id
       );
     }
   };

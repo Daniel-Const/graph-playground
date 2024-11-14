@@ -27,6 +27,11 @@ export default function ToolMenu({
           action={() => selectTool(ToolType.Edge)}
           isSelected={tool == ToolType.Edge}
         />
+        <ToolButton
+          label="Delete"
+          action={() => selectTool(ToolType.Delete)}
+          isSelected={tool == ToolType.Delete}
+        />
       </div>
     </>
   );

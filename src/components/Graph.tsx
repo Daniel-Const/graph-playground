@@ -1,19 +1,20 @@
 import "@pixi/events";
 import { useApp } from "@pixi/react";
 import { FederatedPointerEvent } from "pixi.js";
-import { Edge, Vertex } from "../App";
-import VertexSprite from "./VertexSprite";
-import { ToolType } from "./tool/ToolType";
 import { useState } from "react";
-import { EdgeCursor } from "./cursor/EdgeCursor";
-import { PointerEventBundle, VertexContainer } from "./VertexContainer";
+import { v4 as uuidv4 } from "uuid";
+import { Edges, Vertex } from "../App";
 import { useDragBundle } from "../events/DragEventBundle";
 import { useSelectBundle } from "../events/SelectEventBundle";
+import { EdgeCursor } from "./cursor/EdgeCursor";
 import { EdgeSprite } from "./EdgeSprite";
+import { EventContainer, MetaData, PointerEventBundle } from "./EventContainer";
+import { ToolType } from "./tool/ToolType";
+import VertexSprite from "./VertexSprite";
 
 interface NewEdge {
-  from: number | null;
-  to: number | null;
+  from: string | null;
+  to: string | null;
 }
 
 export const NewGraph = ({
@@ -24,10 +25,10 @@ export const NewGraph = ({
   setEdges,
 }: {
   vertices: Vertex[];
-  edges: Edge[];
+  edges: Edges;
   tool: ToolType;
   setVertices: (vertices: Vertex[]) => void;
-  setEdges: (vertices: Edge[]) => void;
+  setEdges: (vertices: Edges) => void;
 }) => {
   const [newEdge, setNewEdge] = useState<NewEdge>({ from: null, to: null });
 
@@ -35,11 +36,16 @@ export const NewGraph = ({
   app.stage.eventMode = "static";
   app.stage.hitArea = app.screen;
 
-  const updateVertexPosition = (x: number, y: number, index: number) => {
-    const newvertices = [...vertices];
-    newvertices[index].x = x;
-    newvertices[index].y = y;
-    setVertices(newvertices);
+  const updateVertexPosition = (x: number, y: number, id: string) => {
+    vertices.forEach((v, i) => {
+      if (v.id === id) {
+        const newvertices = [...vertices];
+        newvertices[i].x = x;
+        newvertices[i].y = y;
+        setVertices(newvertices);
+        return;
+      }
+    });
   };
 
   // Move to pointerEventBundle
@@ -47,39 +53,104 @@ export const NewGraph = ({
     const position = event.global;
     setVertices([
       ...vertices,
-      { x: position.x, y: position.y, data: vertices.length.toString() },
+      {
+        x: position.x,
+        y: position.y,
+        data: (vertices.length + 1).toString(),
+        id: uuidv4(),
+      },
     ]);
   };
 
-  let pointerEventBundles: PointerEventBundle[] = [];
+  let vertexEventBundles: PointerEventBundle[] = [];
+  let edgeEventBundles: PointerEventBundle[] = [];
+
   const dragEventBundle = useDragBundle(updateVertexPosition);
-  const selectEventBundle = useSelectBundle((index: number) => {
-    console.log("Selected ", index);
+  const selectEventBundle = useSelectBundle((meta: MetaData) => {
+    console.log("Selected ", meta.id);
   });
-  const selectEdgeEventBundle = useSelectBundle((index: number) => {
+  const selectEdgeEventBundle = useSelectBundle((meta: MetaData) => {
     if (newEdge.from === null) {
-      setNewEdge({ from: index, to: null });
+      setNewEdge({ from: meta.id, to: null });
     } else if (newEdge.to === null) {
-      setEdges([...edges, { from: newEdge.from, to: index }]);
+      if (
+        edges[newEdge.from] !== undefined &&
+        edges[newEdge.from].includes(meta.id)
+      ) {
+        return;
+      }
+      const newEdges = Object.assign({}, edges);
+      if (newEdges[newEdge.from] === undefined) {
+        newEdges[newEdge.from] = [];
+      }
+      newEdges[newEdge.from].push(meta.id);
+      setEdges(newEdges);
       setNewEdge({ from: null, to: null });
     }
   });
 
+  const deleteEdgeEventBundle = useSelectBundle((meta) => {
+    if (meta.id) deleteEdge(meta.id);
+  });
+  const deleteVertexEventBundle = useSelectBundle((meta) => {
+    if (meta.id) deleteVertex(meta.id);
+  });
+
+  const deleteEdge = (identifier: string) => {
+    // Delete {start_id -> end_id} edge from identifier
+    const [start, end] = identifier.split("_");
+    if (edges[start] === undefined) {
+      return;
+    }
+    const newEdges = Object.assign({}, edges);
+    newEdges[start] = newEdges[start].filter((i: string) => i !== end);
+    if (newEdges[start].length === 0) {
+      delete newEdges[start];
+    }
+    setEdges(newEdges);
+  };
+
+  const deleteVertex = (index: string) => {
+    // Delete connected edges
+    vertices.forEach((v) => {
+      deleteEdge(getEdgeIdentifier(v.id, index));
+      deleteEdge(getEdgeIdentifier(index, v.id));
+    });
+
+    const newEdges = Object.assign({}, edges);
+    delete newEdges[index];
+    setEdges(newEdges);
+
+    // Delete vertex
+    const newVertices = vertices.filter((v) => v.id !== index);
+    setVertices(newVertices);
+  };
+
+  // Handle event bundles for the given tool
+  app.stage.removeAllListeners("pointerdown");
   switch (tool) {
     case ToolType.Vertex:
       app.stage.on("pointerdown", onAddNode);
       break;
     case ToolType.Mouse:
-      pointerEventBundles = [dragEventBundle, selectEventBundle];
-      app.stage.removeAllListeners("pointerdown");
+      vertexEventBundles = [dragEventBundle, selectEventBundle];
+      edgeEventBundles = [selectEventBundle];
       break;
     case ToolType.Edge:
-      pointerEventBundles = [selectEventBundle, selectEdgeEventBundle];
-      app.stage.removeAllListeners("pointerdown");
+      vertexEventBundles = [selectEventBundle, selectEdgeEventBundle];
+      break;
+    case ToolType.Delete:
+      edgeEventBundles = [deleteEdgeEventBundle];
+      vertexEventBundles = [deleteVertexEventBundle];
   }
 
-  const getEdgeKey = (v1: Vertex, v2: Vertex) => {
-    return `${v1.x}${v1.y}${v2.x}${v2.y}`;
+  // Edge identifier: {start-id}_{end-id}
+  const getEdgeIdentifier = (id1: string, id2: string) => {
+    return `${id1}_${id2}`;
+  };
+
+  const getVertexFromId = (id: string) => {
+    return vertices.find((v) => v.id === id);
   };
 
   return (
@@ -90,8 +161,8 @@ export const NewGraph = ({
           anchorPosition={
             newEdge.from !== null
               ? {
-                  x: vertices[newEdge.from].x,
-                  y: vertices[newEdge.from].y,
+                  x: getVertexFromId(newEdge.from)?.x,
+                  y: getVertexFromId(newEdge.from)?.y,
                 }
               : null
           }
@@ -99,24 +170,50 @@ export const NewGraph = ({
       ) : (
         ""
       )}
-      {edges.map((edge: Edge) => (
-        <EdgeSprite
-          from={vertices[edge.from]}
-          to={vertices[edge.to]}
-          key={getEdgeKey(vertices[edge.from], vertices[edge.to])}
-        />
-      ))}
-      {vertices.map((vertex: Vertex, index: number) => {
+      {Object.keys(edges).map((start: string) => {
+        const startVertex = getVertexFromId(start);
         return (
-          <VertexContainer
+          startVertex &&
+          edges[start].map((end) => {
+            const endVertex = getVertexFromId(end);
+            const edgeIdentifier = getEdgeIdentifier(start, end);
+
+            return (
+              endVertex && (
+                <EventContainer
+                  meta={{
+                    id: edgeIdentifier,
+                  }}
+                  pointerEventBundles={edgeEventBundles}
+                  key={edgeIdentifier}
+                >
+                  <EdgeSprite
+                    from={{
+                      x: startVertex.x,
+                      y: startVertex.y,
+                    }}
+                    to={{
+                      x: endVertex.x,
+                      y: endVertex.y,
+                    }}
+                  />
+                </EventContainer>
+              )
+            );
+          })
+        );
+      })}
+      {vertices.map((vertex: Vertex) => {
+        return (
+          <EventContainer
             x={vertex.x}
             y={vertex.y}
-            key={index}
-            index={index}
-            pointerEventBundles={pointerEventBundles}
+            key={vertex.id}
+            meta={{ id: vertex.id }}
+            pointerEventBundles={vertexEventBundles}
           >
             <VertexSprite label={vertex.data} alpha={1} />
-          </VertexContainer>
+          </EventContainer>
         );
       })}
     </>

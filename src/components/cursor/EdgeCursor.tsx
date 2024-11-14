@@ -6,7 +6,7 @@ import { EdgeSprite } from "../EdgeSprite";
 export const EdgeCursor = ({
   anchorPosition,
 }: {
-  anchorPosition: { x: number; y: number } | null;
+  anchorPosition: { x: number | undefined; y: number | undefined } | null;
 }) => {
   const app = useApp();
   const startPosition = app.renderer.events.pointer.global;
@@ -25,7 +25,7 @@ export const EdgeCursor = ({
     <>
       {anchorPosition !== null ? (
         <EdgeSprite
-          from={{ x: anchorPosition.x, y: anchorPosition.y }}
+          from={{ x: anchorPosition.x ?? 0, y: anchorPosition.y ?? 0 }}
           to={{ x: cursorPos.x, y: cursorPos.y }}
         />
       ) : (

@@ -4,7 +4,7 @@ import { Container, useApp } from "@pixi/react";
 import { useState } from "react";
 import VertexSprite from "../VertexSprite";
 
-export const VertexCursor = () => {
+export const VertexCursor = ({ label }: { label: string }) => {
   const app = useApp();
   const startPosition = app.renderer.events.pointer.global;
   const [cursorPos, setCursorPos] = useState({
@@ -20,7 +20,7 @@ export const VertexCursor = () => {
 
   return (
     <Container x={cursorPos.x} y={cursorPos.y}>
-      <VertexSprite label={"A"} alpha={0.5} />
+      <VertexSprite label={label} alpha={0.5} />
     </Container>
   );
 };

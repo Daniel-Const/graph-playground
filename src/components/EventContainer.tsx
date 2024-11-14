@@ -20,15 +20,19 @@ export interface PointerEventBundle {
   onPointerOut?: PointerEvent;
 }
 
+export interface MetaData {
+  id: string;
+}
+
 export interface VertexContainerProps {
-  x: number;
-  y: number;
-  index: number;
+  x?: number;
+  y?: number;
+  meta?: MetaData;
   children: ReactNode | ReactNode[];
   pointerEventBundles: PointerEventBundle[];
 }
 
-export const VertexContainer = ({
+export const EventContainer = ({
   pointerEventBundles,
   ...props
 }: VertexContainerProps) => {
