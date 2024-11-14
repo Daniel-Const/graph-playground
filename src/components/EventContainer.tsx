@@ -1,7 +1,7 @@
 /**
- * Vertex Container
+ * Event Container
  *
- * Custom Pixi Container: extends containers to keep track of extra data and
+ * Custom Pixi Container: extends containers to keep track of extra data and for
  * handling pointer events in a more generic way
  */
 
